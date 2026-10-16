@@ -57,7 +57,7 @@ from lead_scoring.metrics import (
     bootstrap_metrics,
     calibration_table,
 )
-from lead_scoring.provenance import git_commit, hash_paths
+from lead_scoring.provenance import git_commit, hash_tables
 
 #: The metric the "best model" decision is made on.
 SELECTION_METRIC: Final = "auroc"
@@ -322,7 +322,7 @@ def main(argv: list[str] | None = None) -> int:
     x_train, y_train = load_snapshot(TRAIN_SNAPSHOT, args.features)
     x_test, y_test = load_snapshot(TEST_SNAPSHOT, args.features)
 
-    data_hash = hash_paths(
+    data_hash = hash_tables(
         [
             args.features / f"snapshot={TRAIN_SNAPSHOT.cutoff_date}",
             args.features / f"snapshot={TEST_SNAPSHOT.cutoff_date}",

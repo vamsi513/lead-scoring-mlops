@@ -155,10 +155,23 @@ def run_snapshot(
     started = time.perf_counter()
     features = build_features(events, leads, snapshot.cutoff)
     destination = out_dir / f"snapshot={snapshot.cutoff_date}"
-    # One row per lead is a small output; writing it from every shuffle
-    # partition would produce dozens of tiny files and make the Parquet writer
-    # contend for heap. Four files keep the read parallel without that.
-    features.coalesce(4).write.mode("overwrite").parquet(str(destination))
+    # Written as one file, sorted by lead_id, so the output is canonical:
+    # same rows in the same order every run, rather than scattered across
+    # files differently each time. Note this does NOT make the file
+    # byte-identical between runs, and cannot: parquet-mr serialises each
+    # column's encodings set in JVM hash order, so the footer differs even for
+    # identical data. That is why run provenance uses
+    # lead_scoring.provenance.hash_table, which hashes the data rather than
+    # the file bytes.
+    #
+    # The cost is one writer task instead of several, which is not measurable
+    # at 50,000 rows and would matter on a large table.
+    (
+        features.repartition(1)
+        .sortWithinPartitions("lead_id")
+        .write.mode("overwrite")
+        .parquet(str(destination))
+    )
     elapsed = time.perf_counter() - started
 
     rows = spark.read.parquet(str(destination)).count()
