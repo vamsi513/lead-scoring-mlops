@@ -152,7 +152,8 @@ into the image, so promoting a new version needs no rebuild.
 
 ## Results
 
-From the run below. Reproduce with the commands in [Run each step](#run-each-step).
+From the run at commit `9df2666`. Reproduce with the commands in
+[Run each step](#run-each-step).
 
 ### Environment
 
@@ -163,7 +164,7 @@ From the run below. Reproduce with the commands in [Run each step](#run-each-ste
 | Java | Temurin 17.0.20.1 (vendored in `./.jdk`) |
 | Spark | 4.2.0, `local[*]` |
 | Docker | 29.7.2 |
-| Commit | `bf3f1c0e8051bbe8592f279cd8d157537c3e2068` |
+| Commit | `9df26665e726a7b87be399bd0b65758eebfc4b31` |
 
 ### Data and pipeline
 
@@ -172,20 +173,26 @@ From the run below. Reproduce with the commands in [Run each step](#run-each-ste
 | Leads | 50,000 |
 | Activity events | 2,004,913 over 60 days (2025-01-01 to 2025-03-02) |
 | Converting leads | 11,689 (23.38% over the whole window) |
-| Generation | 1.88 s wall |
+| Generation | 1.75 s wall |
 | On disk | events 20 MB (60 date partitions), leads 416 KB, conversions 80 KB |
-| Spark features | 8.09 s wall total, including JVM start |
-| — train snapshot | 50,000 rows in 3.0 s |
-| — test snapshot | 50,000 rows in 1.4 s |
+| Spark features | 8.23 s wall total, including JVM start |
+| — train snapshot | 50,000 rows in 3.3 s |
+| — test snapshot | 50,000 rows in 1.3 s |
 | Feature table | 2.4 MB, 21 features per lead |
-| Training | 42.63 s wall, both models, 1000 bootstrap resamples each |
+| Training | 44.05 s wall, both models, 1000 bootstrap resamples each |
 | Train rows | 44,021 eligible leads, 6.613% positive |
 | Test rows | 41,110 eligible leads, 6.809% positive |
-| Data hash | `9e82572d51db4c003ec18393bee8f4b828bebb652e69617f546e2da9ae46c420` |
+| Data hash (content, not bytes) | `5ef0078c6b8990f4b11f1397ef85ce773fc995fb1b9406c9a93961ea486eca15` |
 
 Eligible means not already converted at the cutoff. The 23.38% whole-window
 conversion rate and the ~6.7% per-snapshot rate are not in conflict: the label
 only counts conversions inside a 15-day horizon.
+
+The data hash is taken over the table contents, not the file bytes, and is
+stable across rebuilds: three complete regenerations of the pipeline produced
+`5ef0078c…` each time. Hashing the bytes does not work here, because Spark's
+Parquet output is not byte-reproducible — see
+[Limitations](#limitations).
 
 ### Model metrics
 
@@ -281,11 +288,12 @@ the use case, not a property of the detector.
 
 ### Tests
 
-86 tests, all passing, 13.89 s:
+105 tests, all passing, 13.59 s:
 
 | File | Tests | What it checks |
 |---|---|---|
 | `test_features_parity.py` | 23 | Spark output equals an independent pandas implementation, column by column |
+| `test_provenance.py` | 19 | the data hash is stable across rebuilds and moves when data moves |
 | `test_metrics.py` | 14 | metrics against cases with known answers; bootstrap behaviour |
 | `test_generate.py` | 12 | generator reproducibility, hash stability, activity really predicts conversion |
 | `test_serving.py` | 11 | endpoints, validation, unseen categories, score ordering |
@@ -357,9 +365,16 @@ drift detector fires when the data moves and not when it does not.
 - **Features are rebuilt in full, not incrementally.** Each snapshot is a
   complete pass over the event log. There is no streaming path and no backfill
   story.
-- **Only one data hash per run.** The hash covers the feature tables and the
-  conversions file. It does not cover the raw event log, so regenerating raw
-  data without rebuilding features would go unnoticed.
+- **The data hash is over content, not file bytes.** Spark's Parquet output is
+  not byte-reproducible and cannot be made so from here: parquet-mr serialises
+  each column chunk's encodings set in JVM hash order, so three consecutive
+  builds of the same table gave three different byte digests that differed in
+  46 bytes of footer. `lead_scoring.provenance.hash_table` therefore reads the
+  table and hashes rows and columns, which is stable across rebuilds but reads
+  the whole table into memory. It would need replacing on a large table.
+- **The hash covers the feature tables and the conversions file only.** It does
+  not cover the raw event log, so regenerating raw data without rebuilding
+  features would go unnoticed.
 - **PSI thresholds are convention, not calibration.** 0.1 and 0.25 are the
   numbers everyone uses. The trial counts above measure what they do on this
   data; they are not tuned to a false-positive budget.
