@@ -288,7 +288,8 @@ the use case, not a property of the detector.
 
 ### Tests
 
-105 tests, all passing, 13.59 s:
+105 tests, all passing. 13.59 s with the serving image already built,
+16.28 s when `test_docker_image.py` has to build it first:
 
 | File | Tests | What it checks |
 |---|---|---|
