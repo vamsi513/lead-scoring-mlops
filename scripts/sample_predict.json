@@ -1,0 +1,14 @@
+{"leads": [
+  {"n_email_open_7d": 0.0, "n_call_7d": 0.0, "n_demo_request_7d": 0.0, "n_page_visit_7d": 0.0,
+   "n_total_7d": 0.0, "n_email_open_30d": 1.0, "n_call_30d": 0.0, "n_demo_request_30d": 0.0,
+   "n_page_visit_30d": 1.0, "n_total_30d": 2.0, "n_total_prev7d": 0.0, "active_days_30d": 2.0,
+   "distinct_types_30d": 2.0, "recency_days": 21.5, "trend_ratio": 1.0, "trend_excess": -0.467,
+   "tenure_days": 95.0, "industry": "retail", "company_size": "1-10", "source": "outbound",
+   "region": "latam"},
+  {"n_email_open_7d": 9.0, "n_call_7d": 4.0, "n_demo_request_7d": 3.0, "n_page_visit_7d": 14.0,
+   "n_total_7d": 30.0, "n_email_open_30d": 33.0, "n_call_30d": 11.0, "n_demo_request_30d": 6.0,
+   "n_page_visit_30d": 44.0, "n_total_30d": 94.0, "n_total_prev7d": 18.0, "active_days_30d": 25.0,
+   "distinct_types_30d": 4.0, "recency_days": 0.2, "trend_ratio": 1.632, "trend_excess": 8.067,
+   "tenure_days": 150.0, "industry": "saas", "company_size": "201-1000", "source": "referral",
+   "region": "na"}
+]}

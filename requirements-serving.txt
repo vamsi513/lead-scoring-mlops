@@ -1,0 +1,10 @@
+# Dependencies for the serving image only. Pins match requirements.txt exactly.
+# PySpark is deliberately absent: the API scores one batch of already-built
+# features and never touches the feature pipeline.
+pandas==2.3.3
+numpy==2.3.5
+scikit-learn==1.9.1
+scipy==1.16.3
+mlflow==3.17.1
+fastapi==0.143.3
+uvicorn==0.54.0
