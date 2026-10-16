@@ -1,0 +1,16 @@
+.git/
+.jdk/
+.venv/
+data/
+mlruns/
+mlflow.db
+artifacts/
+spark-warehouse/
+metastore_db/
+derby.log
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.github/

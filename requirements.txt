@@ -1,0 +1,11 @@
+# Runtime dependencies. Every version is pinned exactly.
+# Python 3.12 is the supported interpreter (see README).
+pyspark==4.2.0
+pandas==2.3.3
+pyarrow==25.0.1
+numpy==2.3.5
+scikit-learn==1.9.1
+scipy==1.16.3
+mlflow==3.17.1
+fastapi==0.143.3
+uvicorn==0.54.0

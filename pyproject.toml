@@ -1,0 +1,45 @@
+[project]
+name = "lead-scoring-mlops"
+version = "0.1.0"
+description = "Lead scoring pipeline on synthetic CRM activity events"
+requires-python = "==3.12.*"
+
+[tool.setuptools]
+packages = ["lead_scoring"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+extend-exclude = [".jdk", ".venv"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "C4", "RET", "ARG", "PTH", "N"]
+ignore = [
+  # Spark/pandas expression chains read better long; line-length is enforced separately.
+  "E501",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests use fixtures as arguments and assert on intermediate values.
+"tests/*" = ["ARG001"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["lead_scoring", "data", "pipelines", "serving", "monitoring", "train.py"]
+strict = true
+warn_unreachable = true
+# pyspark and mlflow do not ship complete type information.
+[[tool.mypy.overrides]]
+module = ["pyspark.*", "mlflow.*", "sklearn.*", "scipy.*"]
+ignore_missing_imports = true
+follow_untyped_imports = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers --strict-config"
+markers = [
+  "spark: test needs a local Spark session and a JVM (slow)",
+  "docker: test needs a built Docker image",
+  "model: test needs a trained model in the local MLflow registry",
+]
+filterwarnings = ["error::DeprecationWarning:lead_scoring.*"]

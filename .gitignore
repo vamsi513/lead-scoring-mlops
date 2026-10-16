@@ -1,0 +1,26 @@
+# Vendored JDK (downloaded by scripts/setup_jdk.sh, never committed)
+.jdk/
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Generated data and model artifacts (reproducible from source, never committed)
+data/raw/
+data/features/
+mlruns/
+mlflow.db
+artifacts/
+
+# Spark local scratch
+spark-warehouse/
+metastore_db/
+derby.log
+
+# OS
+.DS_Store
