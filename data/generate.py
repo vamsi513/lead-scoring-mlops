@@ -40,6 +40,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from lead_scoring import cli
 from lead_scoring.config import (
     CONVERSIONS_PATH,
     DAY_ZERO,
@@ -361,6 +362,11 @@ def write(
         pa.Table.from_pandas(events, preserve_index=False),
         root_path=str(events_dir),
         partition_cols=["event_date"],
+        # Arrow's dataset writer thread pool can deadlock in its destructor at
+        # interpreter exit: the data is fully written, then the process hangs in
+        # ThreadPool::Shutdown and never returns. Writing single-threaded avoids
+        # the pool altogether; the cost is under a second at this data size.
+        use_threads=False,
     )
 
 
@@ -397,4 +403,5 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    # Not SystemExit: see lead_scoring.cli for the Arrow shutdown deadlock.
+    cli.run(main)

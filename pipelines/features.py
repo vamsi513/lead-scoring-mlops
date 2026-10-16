@@ -21,6 +21,7 @@ import time
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from lead_scoring import cli
 from lead_scoring.config import (
     CATEGORICAL_FEATURES,
     COUNT_WINDOWS,
@@ -157,7 +158,10 @@ def run_snapshot(
     started = time.perf_counter()
     features = build_features(spark, events, leads, snapshot.cutoff)
     destination = out_dir / f"snapshot={snapshot.cutoff_date}"
-    features.write.mode("overwrite").parquet(str(destination))
+    # One row per lead is a small output; writing it from every shuffle
+    # partition would produce dozens of tiny files and make the Parquet writer
+    # contend for heap. Four files keep the read parallel without that.
+    features.coalesce(4).write.mode("overwrite").parquet(str(destination))
     elapsed = time.perf_counter() - started
 
     rows = spark.read.parquet(str(destination)).count()
@@ -183,4 +187,5 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    # Not SystemExit: see lead_scoring.cli for the Arrow shutdown deadlock.
+    cli.run(main)
