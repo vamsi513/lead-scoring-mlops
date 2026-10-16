@@ -4,9 +4,10 @@
 # cannot change what runs here. The comment after each SHA records the tag it
 # corresponded to when it was pinned.
 #
-# NOTE: this workflow has never run on GitHub. It was written against the
-# local runs recorded in the README and the steps match them command for
-# command, but the first push is also its first execution.
+# First run: 2026-10-16, green on every step. It reproduced the README's
+# numbers exactly on Linux/x64, data hash included, which is a stronger claim
+# than the local runs alone could support. Spark is slower there (4 cores
+# against 10), so the timings in the README are the macOS ones.
 name: CI
 
 on:
@@ -29,7 +30,11 @@ env:
 jobs:
   check:
     name: lint, types, tests, image
-    runs-on: ubuntu-latest
+    # Pinned rather than ubuntu-latest, which migrates to Ubuntu 26 from
+    # 2026-10-19 and would change the toolchain under the run without the
+    # commit changing. Same reasoning as pinning the actions by SHA. Bump this
+    # deliberately; the first run on a new image is a change worth seeing.
+    runs-on: ubuntu-24.04
     timeout-minutes: 45
 
     steps:
@@ -50,7 +55,7 @@ jobs:
           java-version: "17"
 
       - name: Cache pip downloads
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/pip
           key: pip-${{ runner.os }}-py${{ env.PYTHON_VERSION }}-${{ hashFiles('requirements.txt', 'requirements-dev.txt') }}

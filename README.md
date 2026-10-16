@@ -194,6 +194,19 @@ stable across rebuilds: three complete regenerations of the pipeline produced
 Parquet output is not byte-reproducible — see
 [Limitations](#limitations).
 
+### Reproduced in CI
+
+The same pipeline on `ubuntu-24.04` / x86-64 (the run above is macOS / arm64)
+produced identical results: 2,004,913 events, 11,689 converting leads, the same
+data hash `5ef0078c…`, all ten metric point estimates and all twenty bootstrap
+interval endpoints to the digit, the same drift trial counts, and the same two
+served probabilities (0.0181 and 0.4665).
+
+Only the timings differ, because the runner has 4 cores against 10 here: the
+Spark snapshots took 12.2 s and 6.1 s rather than 3.3 s and 1.4 s, and the test
+suite 99.37 s rather than 13.59 s. The timings in the tables above are the macOS
+ones.
+
 ### Model metrics
 
 Test snapshot, 1000 bootstrap resamples, 95% percentile intervals. Lower is
@@ -360,9 +373,10 @@ drift detector fires when the data moves and not when it does not.
   no idea how it behaves with more than one request at a time.
 - **No authentication.** No auth, no authorisation, no rate limiting, no TLS,
   no input quotas beyond a 1,000-lead batch cap. Not a service to expose.
-- **CI has never run on GitHub.** `.github/workflows/ci.yml` was written against
-  the local runs above and its steps match them command for command, but it has
-  not executed on a runner. The first push is also its first run.
+- **CI runs on one platform only.** The workflow is green on `ubuntu-24.04`
+  with Python 3.12.15 and Temurin 17, and reproduces the numbers above exactly.
+  Nothing tests macOS, Windows, another Python minor version, or Java 21, all
+  of which Spark 4.2 supports.
 - **Features are rebuilt in full, not incrementally.** Each snapshot is a
   complete pass over the event log. There is no streaming path and no backfill
   story.
