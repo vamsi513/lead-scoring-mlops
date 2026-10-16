@@ -18,5 +18,7 @@ if [ -x "$_repo_root/.venv/bin/python" ]; then
   export PYSPARK_DRIVER_PYTHON="$_repo_root/.venv/bin/python"
 fi
 
-export MLFLOW_TRACKING_URI="file://$_repo_root/mlruns"
+export MLFLOW_TRACKING_URI="sqlite:///$_repo_root/mlflow.db"
+export MLFLOW_REGISTRY_URI="sqlite:///$_repo_root/mlflow.db"
+export MLFLOW_DISABLE_AGENT_HINT=1
 unset _repo_root
