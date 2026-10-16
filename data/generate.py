@@ -107,6 +107,22 @@ TREND_SD: Final = 0.022
 WEEKEND_FACTOR: Final = 0.35
 
 
+#: Parquet timestamp precision. pandas defaults to nanoseconds, which Spark
+#: refuses to read (PARQUET_TYPE_ILLEGAL on TIMESTAMP(NANOS)). Microseconds are
+#: the widest precision both sides agree on, and the generator only ever
+#: produces whole seconds, so nothing is lost.
+TIMESTAMP_UNIT: Final = "us"
+
+
+def to_parquet_timestamps(frame: pd.DataFrame) -> pd.DataFrame:
+    """Return ``frame`` with every datetime column at microsecond precision."""
+    out = frame.copy()
+    for column in out.columns:
+        if pd.api.types.is_datetime64_any_dtype(out[column]):
+            out[column] = out[column].astype(f"datetime64[{TIMESTAMP_UNIT}, UTC]")
+    return out
+
+
 def _draw_segments(rng: np.random.Generator, n: int) -> pd.DataFrame:
     """Draw categorical lead attributes and the latent quality they imply."""
     industry_idx = rng.choice(len(INDUSTRIES), size=n, p=INDUSTRY_WEIGHTS)
@@ -316,7 +332,11 @@ def generate(
     events_out = events.drop(columns=["_day"]).copy()
     events_out["event_ts"] = pd.to_datetime(events_out["event_ts"], unit="s", utc=True)
     events_out["event_date"] = events_out["event_ts"].dt.date.astype("string")
-    return leads_out, events_out, conversions
+    return (
+        to_parquet_timestamps(leads_out),
+        to_parquet_timestamps(events_out),
+        to_parquet_timestamps(conversions),
+    )
 
 
 def write(
