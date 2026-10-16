@@ -88,7 +88,8 @@ def _shares(counts: np.ndarray) -> np.ndarray:
     total = counts.sum()
     if total == 0:
         raise ValueError("cannot compute shares for an empty sample")
-    return counts / total
+    shares: np.ndarray = counts / total
+    return shares
 
 
 def psi_numeric(
@@ -133,9 +134,7 @@ def psi_categorical(
     the current sample is counted rather than silently dropped.
     """
     levels = sorted(set(reference.dropna().unique()) | set(current.dropna().unique()))
-    expected = _shares(
-        np.array([float((reference == level).sum()) for level in levels])
-    )
+    expected = _shares(np.array([float((reference == level).sum()) for level in levels]))
     actual = _shares(np.array([float((current == level).sum()) for level in levels]))
 
     expected_safe = np.clip(expected, EPSILON, None)
@@ -166,9 +165,7 @@ def compare(
     for name in numeric:
         if name not in reference.columns or name not in current.columns:
             continue
-        value, detail = psi_numeric(
-            reference[name].to_numpy(), current[name].to_numpy(), n_bins
-        )
+        value, detail = psi_numeric(reference[name].to_numpy(), current[name].to_numpy(), n_bins)
         results.append(FeatureDrift(name, value, detail))
     for name in categorical:
         if name not in reference.columns or name not in current.columns:
@@ -186,9 +183,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--reference", default=TRAIN_SNAPSHOT.cutoff_date, help="reference snapshot cutoff"
     )
-    parser.add_argument(
-        "--current", default=TEST_SNAPSHOT.cutoff_date, help="snapshot to score"
-    )
+    parser.add_argument("--current", default=TEST_SNAPSHOT.cutoff_date, help="snapshot to score")
     parser.add_argument("--bins", type=int, default=DEFAULT_BINS)
     parser.add_argument("--json", type=Path, help="also write the full report here")
     args = parser.parse_args(argv)
@@ -198,15 +193,19 @@ def main(argv: list[str] | None = None) -> int:
 
     results = compare(reference, current, n_bins=args.bins)
 
-    print(f"PSI  reference={args.reference} ({len(reference):,} rows)  "
-          f"current={args.current} ({len(current):,} rows)")
+    print(
+        f"PSI  reference={args.reference} ({len(reference):,} rows)  "
+        f"current={args.current} ({len(current):,} rows)"
+    )
     print(f"{'feature':<24s} {'psi':>8s}  verdict")
     for result in results:
         print(f"{result.feature:<24s} {result.psi:>8.4f}  {result.verdict}")
 
     shifted = [r.feature for r in results if r.verdict == "shift"]
-    print(f"\n{len(shifted)} feature(s) above {SHIFT_THRESHOLD}" + (
-        f": {', '.join(shifted)}" if shifted else ""))
+    print(
+        f"\n{len(shifted)} feature(s) above {SHIFT_THRESHOLD}"
+        + (f": {', '.join(shifted)}" if shifted else "")
+    )
 
     if args.json:
         args.json.write_text(

@@ -32,7 +32,7 @@ def hash_path(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _feed_file(digest: "hashlib._Hash", path: Path, label: str) -> None:
+def _feed_file(digest: hashlib._Hash, path: Path, label: str) -> None:
     digest.update(label.encode())
     digest.update(b"\0")
     with path.open("rb") as handle:

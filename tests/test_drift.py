@@ -135,8 +135,7 @@ def test_does_not_flag_a_fresh_sample_from_the_same_distribution(
     with capsys.disabled():
         print(f"\n  same distribution:    {same_distribution}")
     assert same_distribution.flagged <= 2, (
-        f"{same_distribution.flagged}/{N_TRIALS} false positives at "
-        f"threshold {SHIFT_THRESHOLD}"
+        f"{same_distribution.flagged}/{N_TRIALS} false positives at threshold {SHIFT_THRESHOLD}"
     )
 
 
@@ -187,8 +186,7 @@ def test_psi_grows_with_the_size_of_the_shift() -> None:
     rng = np.random.default_rng(9)
     reference = rng.normal(0.0, 1.0, 20000)
     values = [
-        psi_numeric(reference, rng.normal(delta, 1.0, 20000))[0]
-        for delta in (0.0, 0.25, 0.5, 1.0)
+        psi_numeric(reference, rng.normal(delta, 1.0, 20000))[0] for delta in (0.0, 0.25, 0.5, 1.0)
     ]
     assert values == sorted(values), values
     assert values[0] < 0.01 < values[-1]

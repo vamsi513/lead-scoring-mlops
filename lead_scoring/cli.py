@@ -37,10 +37,10 @@ from __future__ import annotations
 
 import os
 import sys
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 
 
-def run(main: Callable[[Sequence[str] | None], int], argv: Sequence[str] | None = None) -> None:
+def run(main: Callable[[list[str] | None], int], argv: list[str] | None = None) -> None:
     """Call ``main``, flush output, then end the process without unwinding.
 
     Never returns. Exceptions are allowed to propagate so that failures still

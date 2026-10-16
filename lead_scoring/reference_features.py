@@ -56,9 +56,7 @@ def build_features_pandas(
         rows = counts_in(window, 0)
         for event_type in EVENT_TYPES:
             tally = rows.loc[rows["event_type"] == event_type].groupby("lead_id").size()
-            out[f"n_{event_type}_{window}d"] = (
-                out["lead_id"].map(tally).fillna(0).astype("int32")
-            )
+            out[f"n_{event_type}_{window}d"] = out["lead_id"].map(tally).fillna(0).astype("int32")
         total = rows.groupby("lead_id").size()
         out[f"n_total_{window}d"] = out["lead_id"].map(total).fillna(0).astype("int32")
 

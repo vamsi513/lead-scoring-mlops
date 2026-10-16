@@ -44,7 +44,6 @@ _DAY_SECONDS = 86_400.0
 
 
 def build_features(
-    spark: SparkSession,
     events: DataFrame,
     leads: DataFrame,
     cutoff: dt.datetime,
@@ -54,7 +53,7 @@ def build_features(
     Every lead in ``leads`` appears in the output. Leads with no event before
     the cutoff get zero counts and ``recency_days = NO_EVENT_RECENCY``.
     """
-    from pyspark.sql import functions as F
+    from pyspark.sql import functions as F  # noqa: N812 - the PySpark convention
 
     cutoff_epoch = F.lit(cutoff.timestamp())
 
@@ -86,9 +85,7 @@ def build_features(
                     F.when(window_cond & (F.col("event_type") == event_type), 1).otherwise(0)
                 ).alias(f"n_{event_type}_{window}d")
             )
-        aggregations.append(
-            F.sum(F.when(window_cond, 1).otherwise(0)).alias(f"n_total_{window}d")
-        )
+        aggregations.append(F.sum(F.when(window_cond, 1).otherwise(0)).alias(f"n_total_{window}d"))
 
     aggregations.extend(
         [
@@ -118,9 +115,9 @@ def build_features(
             column, F.coalesce(F.col(column), F.lit(0)).cast("int")
         )
 
-    recency = F.when(
-        F.col("_last_epoch").isNull(), F.lit(NO_EVENT_RECENCY)
-    ).otherwise((cutoff_epoch - F.col("_last_epoch")) / F.lit(_DAY_SECONDS))
+    recency = F.when(F.col("_last_epoch").isNull(), F.lit(NO_EVENT_RECENCY)).otherwise(
+        (cutoff_epoch - F.col("_last_epoch")) / F.lit(_DAY_SECONDS)
+    )
 
     derived = (
         zero_filled.withColumn("recency_days", recency.cast("double"))
@@ -156,7 +153,7 @@ def run_snapshot(
     leads = spark.read.parquet(str(leads_path))
 
     started = time.perf_counter()
-    features = build_features(spark, events, leads, snapshot.cutoff)
+    features = build_features(events, leads, snapshot.cutoff)
     destination = out_dir / f"snapshot={snapshot.cutoff_date}"
     # One row per lead is a small output; writing it from every shuffle
     # partition would produce dozens of tiny files and make the Parquet writer

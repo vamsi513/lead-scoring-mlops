@@ -120,8 +120,19 @@ def to_parquet_timestamps(frame: pd.DataFrame) -> pd.DataFrame:
     out = frame.copy()
     for column in out.columns:
         if pd.api.types.is_datetime64_any_dtype(out[column]):
-            out[column] = out[column].astype(f"datetime64[{TIMESTAMP_UNIT}, UTC]")
+            out[column] = out[column].dt.as_unit(TIMESTAMP_UNIT)
     return out
+
+
+def _as_categorical(codes: np.ndarray, categories: tuple[str, ...]) -> pd.Categorical:
+    """Expand integer codes into a categorical carrying every category.
+
+    ``Categorical.from_codes`` is the direct call, but its type stubs reject a
+    NumPy code array. Expanding by fancy indexing is equivalent and checks.
+    The full category list is passed explicitly because a small sample may not
+    contain every level and the column should still declare them all.
+    """
+    return pd.Categorical(np.asarray(categories)[codes], categories=pd.Index(categories))
 
 
 def _draw_segments(rng: np.random.Generator, n: int) -> pd.DataFrame:
@@ -142,10 +153,10 @@ def _draw_segments(rng: np.random.Generator, n: int) -> pd.DataFrame:
     return pd.DataFrame(
         {
             "lead_id": np.arange(1, n + 1, dtype=np.int64),
-            "industry": pd.Categorical.from_codes(industry_idx, categories=list(INDUSTRIES)),
-            "company_size": pd.Categorical.from_codes(size_idx, categories=list(COMPANY_SIZES)),
-            "source": pd.Categorical.from_codes(source_idx, categories=list(SOURCES)),
-            "region": pd.Categorical.from_codes(region_idx, categories=list(REGIONS)),
+            "industry": _as_categorical(industry_idx, INDUSTRIES),
+            "company_size": _as_categorical(size_idx, COMPANY_SIZES),
+            "source": _as_categorical(source_idx, SOURCES),
+            "region": _as_categorical(region_idx, REGIONS),
             "_quality": quality,
         }
     )
@@ -169,7 +180,7 @@ def _daily_event_counts(
     # Per-lead activity level: lognormal around a quality-driven mean.
     level = np.exp(0.40 * quality + rng.normal(0.0, ACTIVITY_SIGMA, size=n_leads))
     # Per-lead drift, so some leads heat up across the window and some cool off.
-    slope = rng.normal(0.0, TREND_SD, size=n_leads)
+    slope = np.asarray(rng.normal(0.0, TREND_SD, size=n_leads))
     drift = np.exp(slope[:, None] * days[None, :])
 
     weekday = (DAY_ZERO.weekday() + days) % 7
@@ -215,7 +226,7 @@ def _conversion_day(
         start = max(0, day - 7)
         trailing[:, day] = cumulative[:, day] - cumulative[:, start]
 
-    noise = rng.normal(0.0, HAZARD_NOISE_SD, size=n_leads)[:, None]
+    noise = np.asarray(rng.normal(0.0, HAZARD_NOISE_SD, size=n_leads))[:, None]
     logit = (
         HAZARD_INTERCEPT
         + HAZARD_QUALITY_COEF * quality[:, None]
@@ -282,12 +293,10 @@ def _expand_events(
 
     events = pd.concat(frames, ignore_index=True)
     events["event_ts"] = (
-        np.int64(DAY_ZERO.timestamp()) + events["_day"].astype(np.int64) * 86_400 + events["_sec"]
+        events["_day"].astype("int64") * 86_400 + events["_sec"] + int(DAY_ZERO.timestamp())
     )
     events = events.drop(columns=["_sec"])
-    events["event_type"] = pd.Categorical.from_codes(
-        events["event_type"].to_numpy(), categories=list(EVENT_TYPES)
-    )
+    events["event_type"] = _as_categorical(events["event_type"].to_numpy(), EVENT_TYPES)
     return events.sort_values(["event_ts", "lead_id"], kind="stable", ignore_index=True)
 
 
@@ -320,7 +329,8 @@ def generate(
         {
             "lead_id": leads["lead_id"].to_numpy()[converted],
             "converted_at": pd.to_datetime(
-                np.int64(DAY_ZERO.timestamp()) + conversion_day[converted] * 86_400
+                np.int64(DAY_ZERO.timestamp())
+                + conversion_day[converted] * 86_400
                 # Conversions land mid-afternoon; the exact hour is immaterial
                 # because every cutoff in config.py is at UTC midnight.
                 + 15 * 3600,
@@ -355,13 +365,16 @@ def write(
     raw_dir.mkdir(parents=True, exist_ok=True)
 
     pq.write_table(pa.Table.from_pandas(leads, preserve_index=False), leads_path)
-    pq.write_table(
-        pa.Table.from_pandas(conversions, preserve_index=False), conversions_path
-    )
+    pq.write_table(pa.Table.from_pandas(conversions, preserve_index=False), conversions_path)
     pq.write_to_dataset(
         pa.Table.from_pandas(events, preserve_index=False),
         root_path=str(events_dir),
         partition_cols=["event_date"],
+        # Deterministic file names. The default template embeds a fresh UUID per
+        # run, which made the dataset hash in lead_scoring.provenance differ
+        # between two generations of byte-identical data, and a provenance hash
+        # that changes when the data has not is worse than no hash at all.
+        basename_template="part-{i}.parquet",
         # Arrow's dataset writer thread pool can deadlock in its destructor at
         # interpreter exit: the data is fully written, then the process hangs in
         # ThreadPool::Shutdown and never returns. Writing single-threaded avoids

@@ -20,10 +20,6 @@ _MAX_COUNT = 100_000.0
 Count = Annotated[float, Field(ge=0.0, le=_MAX_COUNT)]
 
 
-def _count_field(description: str) -> Count:
-    return Field(ge=0.0, le=_MAX_COUNT, description=description)  # type: ignore[return-value]
-
-
 class LeadFeatures(BaseModel):
     """One lead's features, as produced by the Spark job.
 
@@ -34,19 +30,19 @@ class LeadFeatures(BaseModel):
 
     model_config = {"extra": "forbid"}
 
-    n_email_open_7d: Count = _count_field("email opens in the 7 days before the cutoff")
-    n_call_7d: Count = _count_field("calls in the 7 days before the cutoff")
-    n_demo_request_7d: Count = _count_field("demo requests in the 7 days before the cutoff")
-    n_page_visit_7d: Count = _count_field("page visits in the 7 days before the cutoff")
-    n_total_7d: Count = _count_field("all events in the 7 days before the cutoff")
+    n_email_open_7d: Count = Field(description="email opens in the 7 days before the cutoff")
+    n_call_7d: Count = Field(description="calls in the 7 days before the cutoff")
+    n_demo_request_7d: Count = Field(description="demo requests in the 7 days before the cutoff")
+    n_page_visit_7d: Count = Field(description="page visits in the 7 days before the cutoff")
+    n_total_7d: Count = Field(description="all events in the 7 days before the cutoff")
 
-    n_email_open_30d: Count = _count_field("email opens in the 30 days before the cutoff")
-    n_call_30d: Count = _count_field("calls in the 30 days before the cutoff")
-    n_demo_request_30d: Count = _count_field("demo requests in the 30 days before the cutoff")
-    n_page_visit_30d: Count = _count_field("page visits in the 30 days before the cutoff")
-    n_total_30d: Count = _count_field("all events in the 30 days before the cutoff")
+    n_email_open_30d: Count = Field(description="email opens in the 30 days before the cutoff")
+    n_call_30d: Count = Field(description="calls in the 30 days before the cutoff")
+    n_demo_request_30d: Count = Field(description="demo requests in the 30 days before the cutoff")
+    n_page_visit_30d: Count = Field(description="page visits in the 30 days before the cutoff")
+    n_total_30d: Count = Field(description="all events in the 30 days before the cutoff")
 
-    n_total_prev7d: Count = _count_field("all events in days 14 to 7 before the cutoff")
+    n_total_prev7d: Count = Field(description="all events in days 14 to 7 before the cutoff")
     active_days_30d: Annotated[float, Field(ge=0.0, le=30.0)] = Field(
         description="distinct days with any event in the last 30"
     )
@@ -59,9 +55,7 @@ class LeadFeatures(BaseModel):
     trend_ratio: Annotated[float, Field(gt=0.0)] = Field(
         description="(events in last 7d + 1) / (events in the 7d before that + 1)"
     )
-    trend_excess: float = Field(
-        description="events in last 7d minus 7/30 of the 30 day count"
-    )
+    trend_excess: float = Field(description="events in last 7d minus 7/30 of the 30 day count")
     tenure_days: Annotated[float, Field(ge=0.0)] = Field(
         description="days between the lead being created and the cutoff"
     )

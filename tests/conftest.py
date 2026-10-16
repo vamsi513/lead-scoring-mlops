@@ -71,9 +71,7 @@ def sample_data(tmp_path_factory: pytest.TempPathFactory) -> SampleData:
     from data.generate import generate, write
     from lead_scoring.config import DAY_ZERO
 
-    leads, events, conversions = generate(
-        seed=404, n_leads=400, target_events=12_000, n_days=60
-    )
+    leads, events, conversions = generate(seed=404, n_leads=400, target_events=12_000, n_days=60)
     root = tmp_path_factory.mktemp("sample_raw")
     write(
         leads,

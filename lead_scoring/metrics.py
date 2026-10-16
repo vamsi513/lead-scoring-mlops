@@ -57,9 +57,7 @@ def expected_calibration_error(
     return total
 
 
-def max_calibration_gap(
-    y_true: np.ndarray, y_prob: np.ndarray, n_bins: int = ECE_BINS
-) -> float:
+def max_calibration_gap(y_true: np.ndarray, y_prob: np.ndarray, n_bins: int = ECE_BINS) -> float:
     """Largest predicted-vs-observed gap over bins holding at least 1% of rows.
 
     ECE can hide a badly miscalibrated tail behind a well-populated middle;

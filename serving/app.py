@@ -32,9 +32,9 @@ from lead_scoring.config import (
 from serving.schemas import (
     HealthResponse,
     ModelInfoResponse,
+    Prediction,
     PredictRequest,
     PredictResponse,
-    Prediction,
 )
 
 logger = logging.getLogger("lead_scoring.serving")
@@ -203,6 +203,6 @@ def predict(payload: PredictRequest, request: Request) -> PredictResponse:
 
 
 @app.exception_handler(ValueError)
-async def value_error_handler(request: Request, exc: ValueError) -> JSONResponse:
+async def value_error_handler(request: Request, exc: ValueError) -> JSONResponse:  # noqa: ARG001 - signature fixed by FastAPI
     """Turn a bad feature frame into a 422 rather than a 500."""
     return JSONResponse(status_code=422, content={"detail": str(exc)})

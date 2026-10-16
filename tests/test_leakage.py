@@ -33,13 +33,9 @@ def _loud_post_cutoff_events(sample: SampleData, per_lead: int) -> pd.DataFrame:
     rng = np.random.default_rng(7)
     lead_ids = np.repeat(sample.leads["lead_id"].to_numpy(), per_lead)
     offsets = rng.integers(0, 10 * 86_400, size=lead_ids.shape[0])
-    timestamps = pd.to_datetime(
-        np.int64(sample.cutoff.timestamp()) + offsets, unit="s", utc=True
-    )
+    timestamps = pd.to_datetime(np.int64(sample.cutoff.timestamp()) + offsets, unit="s", utc=True)
     types = rng.choice(["email_open", "call", "demo_request", "page_visit"], size=lead_ids.shape[0])
-    frame = pd.DataFrame(
-        {"lead_id": lead_ids, "event_type": types, "event_ts": timestamps}
-    )
+    frame = pd.DataFrame({"lead_id": lead_ids, "event_type": types, "event_ts": timestamps})
     frame["event_date"] = frame["event_ts"].dt.date.astype("string")
     return to_parquet_timestamps(frame)
 
@@ -51,7 +47,7 @@ def features_with_and_without_future(spark, sample_data: SampleData, tmp_path_fa
     leads = spark.read.parquet(str(sample_data.root / "leads.parquet"))
 
     baseline = (
-        build_features(spark, clean_events, leads, sample_data.cutoff)
+        build_features(clean_events, leads, sample_data.cutoff)
         .toPandas()
         .sort_values("lead_id", ignore_index=True)
     )
@@ -70,7 +66,7 @@ def features_with_and_without_future(spark, sample_data: SampleData, tmp_path_fa
 
     polluted_events = spark.read.parquet(str(polluted_root))
     polluted = (
-        build_features(spark, polluted_events, leads, sample_data.cutoff)
+        build_features(polluted_events, leads, sample_data.cutoff)
         .toPandas()
         .sort_values("lead_id", ignore_index=True)
     )

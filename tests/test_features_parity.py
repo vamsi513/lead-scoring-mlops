@@ -30,13 +30,11 @@ def both_implementations(spark, sample_data: SampleData) -> tuple[pd.DataFrame, 
     leads = spark.read.parquet(str(sample_data.root / "leads.parquet"))
 
     spark_out = (
-        build_features(spark, events, leads, sample_data.cutoff)
+        build_features(events, leads, sample_data.cutoff)
         .toPandas()
         .sort_values("lead_id", ignore_index=True)
     )
-    pandas_out = build_features_pandas(
-        sample_data.events, sample_data.leads, sample_data.cutoff
-    )
+    pandas_out = build_features_pandas(sample_data.events, sample_data.leads, sample_data.cutoff)
     return spark_out, pandas_out
 
 
@@ -46,14 +44,10 @@ def test_same_leads_in_both(both_implementations) -> None:
     assert spark_out["lead_id"].tolist() == pandas_out["lead_id"].tolist()
 
 
-@pytest.mark.parametrize(
-    "column", [c for c in NUMERIC_FEATURES if c not in _FLOAT_COLUMNS]
-)
+@pytest.mark.parametrize("column", [c for c in NUMERIC_FEATURES if c not in _FLOAT_COLUMNS])
 def test_integer_feature_matches_exactly(both_implementations, column: str) -> None:
     spark_out, pandas_out = both_implementations
-    mismatches = spark_out.index[
-        spark_out[column].to_numpy() != pandas_out[column].to_numpy()
-    ]
+    mismatches = spark_out.index[spark_out[column].to_numpy() != pandas_out[column].to_numpy()]
     assert mismatches.empty, (
         f"{column}: {len(mismatches)} rows differ, "
         f"first few spark={spark_out.loc[mismatches[:5], column].tolist()} "
@@ -64,7 +58,7 @@ def test_integer_feature_matches_exactly(both_implementations, column: str) -> N
 @pytest.mark.parametrize("column", _FLOAT_COLUMNS)
 def test_float_feature_matches_within_tolerance(both_implementations, column: str) -> None:
     spark_out, pandas_out = both_implementations
-    diff = (spark_out[column].to_numpy() - pandas_out[column].to_numpy())
+    diff = spark_out[column].to_numpy() - pandas_out[column].to_numpy()
     assert abs(diff).max() < _FLOAT_TOLERANCE, f"{column}: max abs diff {abs(diff).max()}"
 
 

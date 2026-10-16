@@ -22,7 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
-from typing import Any, Final
+from typing import Final
 
 import mlflow
 import mlflow.sklearn
@@ -71,9 +71,7 @@ SELECTION_METRIC: Final = "auroc"
 #: lines above the call, and written straight to the local store, so the type
 #: is declared rather than the check disabled wholesale.
 SKOPS_TRUSTED_TYPES: Final = {
-    "hist_gradient_boosting": [
-        "sklearn.ensemble._hist_gradient_boosting.predictor.TreePredictor"
-    ],
+    "hist_gradient_boosting": ["sklearn.ensemble._hist_gradient_boosting.predictor.TreePredictor"],
     "logistic_regression": [],
 }
 
@@ -282,8 +280,10 @@ def register_best(
     """Register the best run's model and move the production alias onto it."""
     best_name = max(
         runs,
-        key=lambda name: runs[name][1][SELECTION_METRIC].value
-        * (1 if SELECTION_METRIC in HIGHER_IS_BETTER else -1),
+        key=lambda name: (
+            runs[name][1][SELECTION_METRIC].value
+            * (1 if SELECTION_METRIC in HIGHER_IS_BETTER else -1)
+        ),
     )
     best_run_id = runs[best_name][0]
 
@@ -337,10 +337,14 @@ def main(argv: list[str] | None = None) -> int:
     _ensure_experiment(args.artifacts.resolve())
 
     print("SYNTHETIC data. Scores describe the generator, not real leads.")
-    print(f"train snapshot {TRAIN_SNAPSHOT.cutoff_date}: {len(x_train):,} rows, "
-          f"{y_train.mean():.3%} positive")
-    print(f"test  snapshot {TEST_SNAPSHOT.cutoff_date}: {len(x_test):,} rows, "
-          f"{y_test.mean():.3%} positive")
+    print(
+        f"train snapshot {TRAIN_SNAPSHOT.cutoff_date}: {len(x_train):,} rows, "
+        f"{y_train.mean():.3%} positive"
+    )
+    print(
+        f"test  snapshot {TEST_SNAPSHOT.cutoff_date}: {len(x_test):,} rows, "
+        f"{y_test.mean():.3%} positive"
+    )
     print(f"data_hash {data_hash[:16]}  git {commit[:12]}")
 
     results: dict[str, tuple[str, dict[str, Interval]]] = {}

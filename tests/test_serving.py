@@ -7,7 +7,6 @@ and skipped with a clear message when training has not been run.
 from __future__ import annotations
 
 import os
-from pathlib import Path
 from typing import Any
 
 import pytest
@@ -41,18 +40,32 @@ def sample_lead() -> dict[str, Any]:
     snapshot = next((REPO_ROOT / "data" / "features").glob("snapshot=*"), None)
     if snapshot is not None:
         row = pd.read_parquet(snapshot).iloc[0]
-        return {name: row[name].item() if hasattr(row[name], "item") else row[name]
-                for name in FEATURE_NAMES}
+        return {
+            name: row[name].item() if hasattr(row[name], "item") else row[name]
+            for name in FEATURE_NAMES
+        }
     return {
-        "n_email_open_7d": 3.0, "n_call_7d": 1.0, "n_demo_request_7d": 0.0,
-        "n_page_visit_7d": 4.0, "n_total_7d": 8.0,
-        "n_email_open_30d": 12.0, "n_call_30d": 3.0, "n_demo_request_30d": 1.0,
-        "n_page_visit_30d": 15.0, "n_total_30d": 31.0,
-        "n_total_prev7d": 7.0, "active_days_30d": 14.0, "distinct_types_30d": 4.0,
-        "recency_days": 0.5, "trend_ratio": 1.125, "trend_excess": 0.766,
+        "n_email_open_7d": 3.0,
+        "n_call_7d": 1.0,
+        "n_demo_request_7d": 0.0,
+        "n_page_visit_7d": 4.0,
+        "n_total_7d": 8.0,
+        "n_email_open_30d": 12.0,
+        "n_call_30d": 3.0,
+        "n_demo_request_30d": 1.0,
+        "n_page_visit_30d": 15.0,
+        "n_total_30d": 31.0,
+        "n_total_prev7d": 7.0,
+        "active_days_30d": 14.0,
+        "distinct_types_30d": 4.0,
+        "recency_days": 0.5,
+        "trend_ratio": 1.125,
+        "trend_excess": 0.766,
         "tenure_days": 120.0,
-        "industry": "saas", "company_size": "51-200",
-        "source": "referral", "region": "na",
+        "industry": "saas",
+        "company_size": "51-200",
+        "source": "referral",
+        "region": "na",
     }
 
 
@@ -124,9 +137,7 @@ def test_predict_rejects_an_empty_batch(client) -> None:
 def test_unseen_category_is_handled_rather_than_erroring(client, sample_lead) -> None:
     """OneHotEncoder is configured to ignore unknown levels, so a new industry
     must score rather than 500."""
-    response = client.post(
-        "/predict", json={"leads": [{**sample_lead, "industry": "aerospace"}]}
-    )
+    response = client.post("/predict", json={"leads": [{**sample_lead, "industry": "aerospace"}]})
     assert response.status_code == 200
     assert 0.0 <= response.json()["predictions"][0]["probability"] <= 1.0
 
@@ -134,8 +145,7 @@ def test_unseen_category_is_handled_rather_than_erroring(client, sample_lead) ->
 def test_predict_accepts_integers_for_count_fields(client, sample_lead) -> None:
     """JSON has no int/float distinction; both forms must work."""
     as_ints = {
-        k: (int(v) if isinstance(v, float) and k != "trend_ratio" and k != "trend_excess"
-            else v)
+        k: (int(v) if isinstance(v, float) and k != "trend_ratio" and k != "trend_excess" else v)
         for k, v in sample_lead.items()
     }
     assert client.post("/predict", json={"leads": [as_ints]}).status_code == 200

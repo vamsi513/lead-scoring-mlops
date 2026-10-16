@@ -143,8 +143,16 @@ def test_the_app_object_is_importable_in_the_image(image: str) -> None:
 
 def test_container_runs_as_a_non_root_user(image: str) -> None:
     result = subprocess.run(
-        ["docker", "run", "--rm", "--entrypoint", "python", image,
-         "-c", "import os; print(f'UID{os.getuid()}:{os.geteuid()}')"],
+        [
+            "docker",
+            "run",
+            "--rm",
+            "--entrypoint",
+            "python",
+            image,
+            "-c",
+            "import os; print(f'UID{os.getuid()}:{os.geteuid()}')",
+        ],
         capture_output=True,
         text=True,
         timeout=RUN_TIMEOUT,
@@ -161,8 +169,16 @@ def test_pyspark_is_not_in_the_serving_image(image: str) -> None:
     """The API scores prebuilt features; shipping Spark would add hundreds of
     megabytes and a JVM for nothing."""
     result = subprocess.run(
-        ["docker", "run", "--rm", "--entrypoint", "python", image,
-         "-c", "import importlib.util as u; print('HAS' + str(u.find_spec('pyspark') is not None))"],
+        [
+            "docker",
+            "run",
+            "--rm",
+            "--entrypoint",
+            "python",
+            image,
+            "-c",
+            "import importlib.util as u; print('HAS' + str(u.find_spec('pyspark') is not None))",
+        ],
         capture_output=True,
         text=True,
         timeout=RUN_TIMEOUT,
