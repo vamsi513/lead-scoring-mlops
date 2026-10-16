@@ -185,3 +185,41 @@ def test_content_hash_cannot_be_fooled_by_string_boundaries(tmp_path) -> None:
     _write_parquet(tmp_path / "a", pd.DataFrame({"s": ["ab", "c"]}))
     _write_parquet(tmp_path / "b", pd.DataFrame({"s": ["a", "bc"]}))
     assert hash_table(tmp_path / "a") != hash_table(tmp_path / "b")
+
+
+def test_content_hash_is_stable_for_a_timezone_aware_column(tmp_path) -> None:
+    """A tz-aware column's ``to_numpy()`` is an object array of Timestamps.
+
+    Hashing its ``tobytes()`` hashes pointer addresses, which change on every
+    run. This caught exactly that: the conversions table has a tz-aware
+    ``converted_at``, and its digest moved between two reads of the same file.
+    """
+    import pandas as pd
+
+    from lead_scoring.provenance import hash_table
+
+    frame = pd.DataFrame(
+        {
+            "lead_id": [1, 2, 3],
+            "converted_at": pd.to_datetime(
+                ["2025-02-03", "2025-02-07", "2025-02-11"], utc=True
+            ).as_unit("us"),
+        }
+    )
+    _write_parquet(tmp_path / "t", frame)
+    digests = {hash_table(tmp_path / "t") for _ in range(5)}
+    assert len(digests) == 1, "digest differs between reads of the same file"
+
+
+def test_content_hash_notices_a_changed_timestamp(tmp_path) -> None:
+    import pandas as pd
+
+    from lead_scoring.provenance import hash_table
+
+    base = pd.DataFrame({"lead_id": [1], "converted_at": pd.to_datetime(["2025-02-03"], utc=True)})
+    shifted = pd.DataFrame(
+        {"lead_id": [1], "converted_at": pd.to_datetime(["2025-02-04"], utc=True)}
+    )
+    _write_parquet(tmp_path / "a", base)
+    _write_parquet(tmp_path / "b", shifted)
+    assert hash_table(tmp_path / "a") != hash_table(tmp_path / "b")

@@ -134,12 +134,20 @@ def hash_table(path: Path, sort_by: list[str] | None = None) -> str:
         digest.update(b"\0")
         digest.update(str(values.dtype).encode())
         digest.update(b"\0")
-        if values.dtype == object or isinstance(values.dtype, pd.StringDtype):
-            # Join with a separator that cannot appear in these values, so
-            # ["a", "bc"] and ["ab", "c"] cannot collide.
-            digest.update(b"\0".join(str(v).encode() for v in values))
-        else:
+        if pd.api.types.is_datetime64_any_dtype(values.dtype):
+            # A timezone-aware column's to_numpy() is an object array of
+            # Timestamps, whose tobytes() is a block of pointer addresses that
+            # differ on every run. Normalising to epoch integers first is what
+            # makes a table with a timestamp column hashable at all.
+            digest.update(values.astype("int64").to_numpy().tobytes())
+        elif values.to_numpy().dtype.kind in "iufb":
+            # Real numeric buffer: hash the values directly.
             digest.update(values.to_numpy().tobytes())
+        else:
+            # Strings, categories, anything object-backed. Joined with a
+            # separator that cannot appear in a value, so ["a", "bc"] and
+            # ["ab", "c"] cannot collide.
+            digest.update(b"\0".join(str(v).encode() for v in values))
         digest.update(b"\0")
     return digest.hexdigest()
 
