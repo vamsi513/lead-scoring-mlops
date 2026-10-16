@@ -84,8 +84,16 @@ def test_missing_path_raises(tmp_path) -> None:
         hash_path(tmp_path / "nope")
 
 
-def test_git_commit_is_a_sha_in_this_repo() -> None:
+def test_git_commit_is_a_sha_when_the_tree_is_a_checkout() -> None:
+    """Skipped when it is not. A source export (``git archive``, a release
+    tarball, the Docker image) carries no .git, and provenance correctly
+    reports "unknown" there rather than failing; the test below covers that
+    path. Asserting a sha unconditionally made this test fail in a clean
+    export even though the code was behaving as designed."""
     from lead_scoring.config import REPO_ROOT
+
+    if not (REPO_ROOT / ".git").exists():
+        pytest.skip("not a git checkout, so there is no commit to report")
 
     commit = git_commit(REPO_ROOT)
     base = commit.removesuffix("-dirty")
